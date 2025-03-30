@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Quiz Admin{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('login_bp.static', filename='css/style.css') }}">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-indigo-600">Quiz Admin Dashboard</h1>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <input type="text" placeholder="Search..." class="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <span class="text-gray-700">Welcome Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <nav class="bg-indigo-600 text-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex space-x-8">
+                    <a href="{{ url_for('admin_dashboard') }}" class="px-3 py-2 hover:bg-indigo-700 rounded-md">Home</a>
+                    <a href="#" class="px-3 py-2 hover:bg-indigo-700 rounded-md">Quiz</a>
+                    <a href="#" class="px-3 py-2 hover:bg-indigo-700 rounded-md">Summary</a>
+                    <a href="#" class="px-3 py-2 hover:bg-indigo-700 rounded-md">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200 py-4">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
+                &copy; 2023 Quiz Admin System
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
