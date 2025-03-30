@@ -1,31 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, make_response
-import os
 from werkzeug.security import generate_password_hash, check_password_hash
-import urllib.parse
 import uuid
-from datetime import datetime, timedelta
 
-# from models import User, db
+from extensions import db
+from models import User
 
 login_bp = Blueprint('login_bp', __name__, template_folder='templates', static_folder='static')
-
-# --- Dummy Database (Replace with actual database) ---
-# Structure: {email: {password_hash, full_name, role, id}}
-USERS_DB = {
-    "admin@example.com": {
-        "password_hash": generate_password_hash("admin123"),
-        "full_name": "Admin User",
-        "role": "admin",
-        "id": "admin-001"
-    },
-    "student@example.com": {
-        "password_hash": generate_password_hash("student123"),
-        "full_name": "Student User",
-        "role": "student", 
-        "id": "student-101"
-    }
-}
-
 
 # --- Helper Functions ---
 def generate_token():
@@ -34,36 +14,43 @@ def generate_token():
 
 def authenticate_user(email, password):
     """Authenticate a user against our dummy database"""
-    user = USERS_DB.get(email)
-    if user and check_password_hash(user["password_hash"], password):
+    # user = USERS_DB.get(email)
+    user = User.query.filter_by(email=email).first()
+    if user and user.check_password(password):
         return {
             "authenticated": True,
-            "user_id": user["id"],
-            "user_role": user["role"],
-            "full_name": user["full_name"],
+            "user_id": user.id,
+            "user_role": user.role,
+            "full_name": user.full_name,
             "access_token": generate_token(),
             "refresh_token": generate_token(),
             "message": "Login successful"
         }
     return {"authenticated": False, "message": "Invalid email or password"}
 
-def register_user(email, password, full_name):
+def register_user(email, password, full_name, dob):
     """Register a new user in our dummy database"""
-    if email in USERS_DB:
+    if User.query.filter_by(email=email).first():
         return {"success": False, "message": "Email already registered"}
-    
-    # Once DB is active, we will use this:
-    # new_user = User(email=email, password_hash=generate_password_hash(password), full_name=full_name)
-    # db.session.add(new_user)
-    # db.session.commit()
-    
-    # Temporary dummy db registration
-    USERS_DB[email] = {
-        "password_hash": generate_password_hash(password),
-        "full_name": full_name,
-        "role": "student",
-        "id": f"user-{len(USERS_DB) + 1}"
-    }
+
+    if len(password) < 8:
+        return {"success": False, "message": "Password must be at least 8 characters long"}
+    if not full_name:
+        return {"success": False, "message": "Full name is required"}
+    if not email:
+        return {"success": False, "message": "Email is required"}
+    if not password:
+        return {"success": False, "message": "Password is required"}
+
+    new_user = User(
+        email=email, 
+        password_hash=generate_password_hash(password), 
+        full_name=full_name,
+        role='student',
+        dob=dob
+    )
+    db.session.add(new_user)
+    db.session.commit()
     
     return {"success": True, "message": "Registration successful"}
 
@@ -74,7 +61,7 @@ def login():
     password = request.form.get('password')
 
     if not email or not password:
-      flash('Username/Email and password are required.', 'error')
+      flash('Email and password are required.', 'error')
       return render_template('authentication/login.html')
 
     auth_result = authenticate_user(email, password)
@@ -112,7 +99,7 @@ def login():
       return response
     else:
       flash(auth_result["message"], 'error')
-      return redirect(url_for('login_bp.login', error=auth_result["message"]))
+      return redirect(url_for('login_bp.login'))
 
   return render_template('authentication/login.html')
 
@@ -123,8 +110,8 @@ def register():
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
         full_name = request.form.get('full_name')
+        dob = request.form.get('dob')
         
-        # Validate inputs
         if not email or not password or not confirm_password or not full_name:
             flash("Please fill out all required fields", "error")
             return redirect(url_for('login_bp.register', error="Please fill out all required fields"))
@@ -133,14 +120,12 @@ def register():
             flash("Passwords do not match", "error")
             return redirect(url_for('login_bp.register', error="Passwords do not match"))
             
-        # Basic password strength check
         if len(password) < 8:
             flash("Password must be at least 8 characters long", "error")
             return redirect(url_for('login_bp.register', error="Password must be at least 8 characters long"))
         
-        # Register the user
-        result = register_user(email, password, full_name)
-        
+        result = register_user(email, password, full_name, dob)
+
         if result["success"]:
             flash("Registration successful! Please log in.", "success")
             return redirect(url_for('login_bp.login', success="Registration successful! Please log in."))
@@ -162,7 +147,7 @@ def forgot_password():
             return redirect(url_for('login_bp.forgot_password', error="Please enter your email address"))
             
         # Check if email exists in our database
-        if email in USERS_DB:
+        if User.query.filter_by(email=email).first():
             # For actual implementation, we would:
             # 1. Generate a password reset token
             # 2. Store it with an expiration time
@@ -180,7 +165,6 @@ def forgot_password():
 
 @login_bp.route('/logout')
 def logout():
-    # Clear session
     session.clear()
 
     response = make_response(redirect(url_for('login_bp.login')))
@@ -190,7 +174,6 @@ def logout():
     flash("You have been logged out successfully", "info")
     return response
 
-# --- Additional Routes ---
 @login_bp.route('/terms-of-service')
 def terms_of_service():
     return render_template('terms_of_service.html')

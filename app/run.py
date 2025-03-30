@@ -1,12 +1,16 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, redirect, url_for, session
+from config import Config
 # from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 # from werkzeug.security import generate_password_hash, check_password_hash
 
+from extensions import db 
+from models import User, init_db
 from routes.login import login_bp
 app = Flask(__name__)
+app.config.from_object(Config)
 app.register_blueprint(login_bp)
 
+init_db(app)
 @app.route('/')
 def main():
     return render_template('main.html')
