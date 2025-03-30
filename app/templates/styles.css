@@ -1,0 +1,63 @@
+/* Import fonts if not done in HTML */
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Instrument+Serif:ital,wght@1,600&display=swap'); */
+
+/* Basic resets or body styles if needed */
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif; /* Example default font */
+}
+
+.container {
+  max-width: 1800px;
+  margin: 0 auto;
+  /* Tailwind classes handle the rest in the HTML */
+}
+
+.login h1 {
+  font-family: Inter;
+  font-weight: 700;
+  letter-spacing: -1.25px;
+}
+
+form input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  border-radius: 6px;
+  /* Tailwind classes might override or complement this */
+}
+
+.signup {
+  font-family: "Instrument Serif";
+  font-weight: 600;
+  font-style: italic;
+  font-size: 17px;
+}
+
+button[type="submit"] span {
+  font-size: 18px;
+  transform: translateX(-4px);
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+button[type="submit"]:hover span {
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.5rem;
+    /* Tailwind handles responsive padding/margin too */
+  }
+  .login-image {
+    display: none;
+  }
+  .login {
+    margin-left: 0; /* Adjust centering if needed */
+    padding: 0 1rem; /* Add padding for smaller screens */
+  }
+}
+
+/* Add any other non-Tailwind styles here */
