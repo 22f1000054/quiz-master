@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Instrument+Serif:ital,wght@1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('login_bp.static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container bg-white flex items-center sm:justify-between h-screen px-24">
+        <div class="login flex flex-col justify-start gap-6 h-full py-24 max-w-sm sm:ml-12 px-8 sm:px-0">
+            <h1 class="text-4xl">Create Account 🚀</h1>
+            <p class="font-[Inter] text-black/70 text-lg">
+                Sign up to get started
+            </p>
+
+            {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <span class="block sm:inline">{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('login_bp.register') }}" method="POST" class="flex flex-col gap-4">
+                <div class="flex flex-col gap-2">
+                    <label for="full_name">Full Name</label>
+                    <input
+                        type="text"
+                        name="full_name"
+                        id="full_name"
+                        placeholder="John Doe"
+                        required
+                    />
+                </div>
+                
+                <div class="flex flex-col gap-2">
+                    <label for="email">Email</label>
+                    <input
+                        type="email"
+                        name="email"
+                        id="email"
+                        placeholder="Example@email.com"
+                        required
+                    />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        name="password"
+                        id="password"
+                        placeholder="At least 8 characters"
+                        required
+                        minlength="8"
+                    />
+                </div>
+                
+                <div class="flex flex-col gap-2">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input
+                        type="password"
+                        name="confirm_password"
+                        id="confirm_password"
+                        placeholder="Confirm your password"
+                        required
+                    />
+                </div>
+
+                <p>
+                    Already have an account?
+                    <a href="{{ url_for('login_bp.login') }}">
+                        <span class="text-blue-700 hover:underline signup">Log in</span>
+                    </a>
+                </p>
+
+                <button
+                    class="py-[10px] font-medium text-white bg-black rounded-lg hover:bg-black/90 transition-all ease-linear active:scale-95 flex items-center justify-center gap-2 group"
+                    type="submit"
+                >
+                    Sign Up <span>🡲</span>
+                </button>
+            </form>
+
+            <footer class="mt-24">
+                <p>
+                    By signing up, you agree to my
+                    <a class="text-blue-600 hover:underline" href="{{ url_for('login_bp.terms_of_service') }}">
+                        Terms of Service
+                    </a>
+                    and
+                    <a class="text-blue-600 hover:underline" href="{{ url_for('login_bp.privacy_policy') }}">
+                        Privacy Policy
+                    </a>.
+                </p>
+            </footer>
+        </div>
+        <div class="login-image">
+            <div class="img-wrapper w-[720px]">
+                <img class="rounded-2xl" src="{{ url_for('login_bp.static', filename='images/register.jpg') }}" alt="Register illustration" />
+            </div>
+        </div>
+    </div>
+</body>
+</html>

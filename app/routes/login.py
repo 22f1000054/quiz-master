@@ -1,39 +1,200 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, make_response
+import os
+from werkzeug.security import generate_password_hash, check_password_hash
+import urllib.parse
+import uuid
+from datetime import datetime, timedelta
 
+# from models import User, db
 
 login_bp = Blueprint('login_bp', __name__, template_folder='templates', static_folder='static')
 
+# --- Dummy Database (Replace with actual database) ---
+# Structure: {email: {password_hash, full_name, role, id}}
+USERS_DB = {
+    "admin@example.com": {
+        "password_hash": generate_password_hash("admin123"),
+        "full_name": "Admin User",
+        "role": "admin",
+        "id": "admin-001"
+    },
+    "student@example.com": {
+        "password_hash": generate_password_hash("student123"),
+        "full_name": "Student User",
+        "role": "student", 
+        "id": "student-101"
+    }
+}
+
+
+# --- Helper Functions ---
+def generate_token():
+    """Temporary simple token, will be replaced with proper JWT in production)"""
+    return str(uuid.uuid4())
+
+def authenticate_user(email, password):
+    """Authenticate a user against our dummy database"""
+    user = USERS_DB.get(email)
+    if user and check_password_hash(user["password_hash"], password):
+        return {
+            "authenticated": True,
+            "user_id": user["id"],
+            "user_role": user["role"],
+            "full_name": user["full_name"],
+            "access_token": generate_token(),
+            "refresh_token": generate_token(),
+            "message": "Login successful"
+        }
+    return {"authenticated": False, "message": "Invalid email or password"}
+
+def register_user(email, password, full_name):
+    """Register a new user in our dummy database"""
+    if email in USERS_DB:
+        return {"success": False, "message": "Email already registered"}
+    
+    # Once DB is active, we will use this:
+    # new_user = User(email=email, password_hash=generate_password_hash(password), full_name=full_name)
+    # db.session.add(new_user)
+    # db.session.commit()
+    
+    # Temporary dummy db registration
+    USERS_DB[email] = {
+        "password_hash": generate_password_hash(password),
+        "full_name": full_name,
+        "role": "student",
+        "id": f"user-{len(USERS_DB) + 1}"
+    }
+    
+    return {"success": True, "message": "Registration successful"}
+
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        # Handle login logic here
-        username = request.form['username']
-        password = request.form['password']
-        # Check credentials and log in the user
-        return redirect(url_for('main'))
-    return render_template('login.html')
+  if request.method == 'POST':
+    email = request.form.get('email')
+    password = request.form.get('password')
+
+    if not email or not password:
+      flash('Username/Email and password are required.', 'error')
+      return render_template('authentication/login.html')
+
+    auth_result = authenticate_user(email, password)
+
+    if auth_result["authenticated"]:
+      session['user_id'] = auth_result["user_id"]
+      session['user_role'] = auth_result["user_role"]
+      session['full_name'] = auth_result["full_name"]
+      
+      response = make_response()
+      response.set_cookie(
+          'access_token', 
+          auth_result['access_token'], 
+          httponly=True, 
+          max_age=3600,  # 1 hour
+          samesite='Lax'
+      )
+      response.set_cookie(
+          'refresh_token', 
+          auth_result['refresh_token'], 
+          httponly=True, 
+          max_age=86400 * 7,  # 7 days
+          samesite='Lax'
+      )
+
+      # Redirect based on Authorization
+      if auth_result["user_role"] == "admin":
+          response = make_response(redirect(url_for('admin_dashboard')))
+      else:
+          response = make_response(redirect(url_for('student_dashboard', user_id=auth_result['user_id'])))
+
+      response.set_cookie('access_token', auth_result['access_token'], httponly=True)
+      response.set_cookie('refresh_token', auth_result['refresh_token'], httponly=True)
+
+      return response
+    else:
+      flash(auth_result["message"], 'error')
+      return redirect(url_for('login_bp.login', error=auth_result["message"]))
+
+  return render_template('authentication/login.html')
 
 @login_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Handle registration logic here
-        username = request.form['username']
-        password = request.form['password']
-        # Save user to the database
-        return redirect(url_for('login_bp.login'))
-    return render_template('register.html')
-
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        full_name = request.form.get('full_name')
+        
+        # Validate inputs
+        if not email or not password or not confirm_password or not full_name:
+            flash("Please fill out all required fields", "error")
+            return redirect(url_for('login_bp.register', error="Please fill out all required fields"))
+            
+        if password != confirm_password:
+            flash("Passwords do not match", "error")
+            return redirect(url_for('login_bp.register', error="Passwords do not match"))
+            
+        # Basic password strength check
+        if len(password) < 8:
+            flash("Password must be at least 8 characters long", "error")
+            return redirect(url_for('login_bp.register', error="Password must be at least 8 characters long"))
+        
+        # Register the user
+        result = register_user(email, password, full_name)
+        
+        if result["success"]:
+            flash("Registration successful! Please log in.", "success")
+            return redirect(url_for('login_bp.login', success="Registration successful! Please log in."))
+        else:
+            flash(result["message"], "error")
+            return redirect(url_for('login_bp.register', error=result["message"]))
+            
+    error = request.args.get('error')
+    return render_template('authentication/register.html', error=error)
 
 
 @login_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        # Handle password reset logic here
-        email = request.form['email']
-        # Send password reset email
-        return redirect(url_for('login_bp.login'))
-    return render_template('forgot_password.html')
+        email = request.form.get('email')
+        
+        if not email:
+            flash("Please enter your email address", "error")
+            return redirect(url_for('login_bp.forgot_password', error="Please enter your email address"))
+            
+        # Check if email exists in our database
+        if email in USERS_DB:
+            # For actual implementation, we would:
+            # 1. Generate a password reset token
+            # 2. Store it with an expiration time
+            # 3. Send an email with a reset link
+            
+            flash("If your email is registered, you will receive password reset instructions.", "info")
+            # For demo purposes, we'll just redirect to login
+            return redirect(url_for('login_bp.login', info="Password reset email sent (simulated)"))
+        else:
+            flash("If your email is registered, you will receive password reset instructions.", "info")
+            return redirect(url_for('login_bp.login', info="Password reset email sent (simulated)"))
+            
+    error = request.args.get('error')
+    return render_template('authentication/forgot_password.html', error=error)
 
 @login_bp.route('/logout')
-def render_register_page():
-    return redirect(url_for('login_bp.login'))
+def logout():
+    # Clear session
+    session.clear()
+
+    response = make_response(redirect(url_for('login_bp.login')))
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+
+    flash("You have been logged out successfully", "info")
+    return response
+
+# --- Additional Routes ---
+@login_bp.route('/terms-of-service')
+def terms_of_service():
+    return render_template('terms_of_service.html')
+
+@login_bp.route('/privacy-policy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
