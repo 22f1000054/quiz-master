@@ -89,7 +89,7 @@ def login():
 
       # Redirect based on Authorization
       if auth_result["user_role"] == "admin":
-          response = make_response(redirect(url_for('admin_dashboard')))
+          response = make_response(redirect(url_for('admin_bp.admin_dashboard')))
       else:
           response = make_response(redirect(url_for('student_dashboard', user_id=auth_result['user_id'])))
 

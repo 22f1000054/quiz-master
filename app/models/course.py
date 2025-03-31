@@ -10,7 +10,6 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from extensions import db
 
-
 # ||---------------------- Subject Model ----------------------||#
 class Subject(db.Model):
     """Represents a subject area containing chapters and quizzes."""
